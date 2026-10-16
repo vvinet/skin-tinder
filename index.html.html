@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тиндер для кожи</title>
+<style>
+  :root{
+    --blush:#F5E6E2;
+    --plum:#2B1A2E;
+    --card:#FFFBF8;
+    --match:#1F9D6B;
+    --nope:#D8435B;
+    --mute:#7A6670;
+    --rose:#F4607A;
+    --peach:#F7A27B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--plum);
+    display:grid;place-items:center;min-height:100dvh;
+    font-family:"Avenir Next","Nunito","Segoe UI",system-ui,sans-serif;
+    color:var(--plum);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit;cursor:pointer}
+  :focus-visible{outline:0.6cqw solid var(--plum);outline-offset:0.6cqw}
+
+  .stage{
+    position:relative;
+    width:min(100vw,calc(100dvh*9/16));
+    aspect-ratio:9/16;
+    container-type:inline-size;
+    background:var(--blush);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+    user-select:none;-webkit-user-select:none;
+  }
+
+  /* header */
+  .top{padding:5cqw 4cqw 3.4cqw;display:flex;align-items:center;justify-content:space-between;gap:2cqw}
+  .brand{display:flex;align-items:center;gap:2cqw}
+  .brand svg{width:6.6cqw;height:6.6cqw;flex:0 0 auto}
+  .brand b{font-size:5.2cqw;white-space:nowrap;font-weight:800;letter-spacing:-0.02em}
+  .handle{font-size:2.9cqw;font-weight:700;color:var(--plum);white-space:nowrap;padding:1.2cqw 2.4cqw;border-radius:5cqw;background:rgba(43,26,46,.08)}
+
+  /* deck */
+  .deck{position:relative;flex:1;margin:0 4cqw;min-height:0}
+  .card{
+    position:absolute;inset:0;
+    background:var(--card);
+    border-radius:5cqw;
+    overflow:hidden;
+    box-shadow:0 2cqw 6cqw rgba(43,26,46,.18);
+    display:flex;flex-direction:column;
+    touch-action:none;
+    transition:transform .5s cubic-bezier(.3,.7,.2,1),opacity .5s;
+    will-change:transform;
+  }
+  .card.behind{transform:scale(.94) translateY(3cqw);opacity:.9;pointer-events:none}
+  .card.hidden{display:none}
+  .card.dragging{transition:none}
+  .photo{position:relative;flex:0 0 54%;overflow:hidden}
+  .photo svg.rings{position:absolute;right:-18cqw;top:-14cqw;width:90cqw;height:90cqw;opacity:.38}
+  .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(30,12,34,.82) 0%,rgba(30,12,34,0) 62%)}
+  .who{position:absolute;left:5cqw;right:5cqw;bottom:4cqw;color:#fff;z-index:2}
+  .who h2{margin:0;font-size:9cqw;line-height:1.02;font-weight:800;letter-spacing:-0.02em}
+  .who p{margin:1.4cqw 0 0;font-size:3.4cqw;opacity:.92}
+  .info{flex:1;padding:4.5cqw 5cqw 5cqw;display:flex;flex-direction:column;gap:3.4cqw}
+  .bio{margin:0;font-size:4.2cqw;line-height:1.4}
+  .chips{display:flex;flex-wrap:wrap;gap:1.8cqw}
+  .chips span{font-size:3.3cqw;padding:1.2cqw 3cqw;border-radius:6cqw;border:0.4cqw solid rgba(43,26,46,.28)}
+
+  /* usefulness gauge */
+  .gauge{margin-top:auto}
+  .gauge-head{display:flex;justify-content:space-between;align-items:baseline;font-size:3.5cqw;color:var(--mute);margin-bottom:2cqw}
+  .gauge-head b{font-size:4cqw;color:var(--plum)}
+  .track{position:relative;height:2.4cqw;border-radius:2cqw;background:linear-gradient(90deg,#D8435B 0%,#E9A93B 50%,#1F9D6B 100%)}
+  .thumb{position:absolute;top:50%;width:5.6cqw;height:5.6cqw;margin:-2.8cqw 0 0 -2.8cqw;border-radius:50%;background:#fff;border:0.9cqw solid var(--plum)}
+
+  .stamp{
+    position:absolute;z-index:5;top:7cqw;
+    font-weight:900;font-size:8.5cqw;letter-spacing:.04em;
+    padding:0.8cqw 3cqw;border:1cqw solid;border-radius:2.4cqw;
+    background:rgba(255,251,248,.9);
+    opacity:0;pointer-events:none;
+  }
+  .stamp.match{left:5cqw;color:var(--match);transform:rotate(-14deg)}
+  .stamp.nope{right:5cqw;color:var(--nope);transform:rotate(14deg)}
+
+  /* empty state */
+  .empty{
+    position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;gap:3cqw;padding:0 10cqw;
+  }
+  .empty.show{display:flex;animation:pop .5s ease-out}
+  .empty svg{width:16cqw;height:16cqw}
+  .empty h2{margin:0;font-size:7.4cqw;letter-spacing:-0.02em}
+  .empty p{margin:0;font-size:4.2cqw;line-height:1.4;color:var(--mute)}
+  .empty button{margin-top:3cqw;border:0;border-radius:8cqw;padding:3.4cqw 7cqw;font-weight:800;font-size:4cqw;color:#fff;background:linear-gradient(100deg,var(--rose),var(--peach))}
+  @keyframes pop{from{transform:translateY(3cqw);opacity:.2}to{transform:none;opacity:1}}
+
+  /* controls */
+  .controls{display:flex;justify-content:center;align-items:center;gap:11cqw;padding:5cqw 0 6cqw}
+  .ctl{
+    width:17cqw;height:17cqw;border-radius:50%;padding:0;
+    border:0.5cqw solid rgba(43,26,46,.12);
+    background:#fff;display:flex;align-items:center;justify-content:center;
+    transition:transform .2s;
+  }
+  .ctl svg{width:8cqw;height:8cqw;display:block}
+  .ctl:active{transform:scale(.92)}
+  .ctl.nope{color:var(--nope)}
+  .ctl.match{color:var(--match)}
+
+  /* surround tools */
+  .tools{position:fixed;left:2vmin;bottom:2vmin;display:flex;gap:1.2vmin;align-items:center;color:#d9c7d6;font-size:max(12px,1.6vmin)}
+  .tools button{background:#fff;border:0;border-radius:3vmin;padding:.9vmin 2vmin;font-weight:700;color:var(--plum)}
+  body.rec .tools,body.rec .controls{display:none}
+  body.rec .stage{cursor:none}
+
+  @media (max-width:560px){.tools{display:none}}
+  @media (prefers-reduced-motion:reduce){
+    .card,.ctl{transition-duration:.01s}
+    .empty.show{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<main class="stage" id="stage" aria-label="Тиндер для кожи">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#F7A27B"/><stop offset="1" stop-color="#F4607A"/></linearGradient></defs><path d="M12 2.5c3.6 4.3 6.2 7.5 6.2 11a6.2 6.2 0 0 1-12.4 0c0-3.5 2.6-6.7 6.2-11z" fill="url(#g)"/></svg>
+      <b>Тиндер для кожи</b>
+    </div>
+    <div class="handle">boutique.bydianik</div>
+  </header>
+
+  <section class="deck" id="deck">
+    <div class="empty" id="empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 4.3 6.2 7.5 6.2 11a6.2 6.2 0 0 1-12.4 0c0-3.5 2.6-6.7 6.2-11z" fill="url(#g)"/></svg>
+      <h2>Анкеты закончились</h2>
+      <p>Свою пару для кожи подберёт косметолог.</p>
+      <button id="again">Смотреть заново</button>
+    </div>
+  </section>
+
+  <div class="controls">
+    <button class="ctl nope" id="bNope" aria-label="Мимо">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M6 6L18 18M18 6L6 18"/></svg>
+    </button>
+    <button class="ctl match" id="bMatch" aria-label="Мэтч">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    </button>
+  </div>
+</main>
+
+<div class="tools">
+  <button id="rec">Режим съёмки</button>
+  <span>Esc — остановить</span>
+</div>
+
+<script>
+const LEVEL = {5:'Очень высокая', 4:'Высокая', 3:'Средняя', 2:'Низкая', 1:'Почти нулевая'};
+const POS   = {5:92, 4:77, 3:52, 2:28, 1:9};
+
+const DATA = [
+  {name:'SPF', dist:'Рядом каждый день. Даже когда пасмурно',
+   bio:'Скучный, зато надёжный. Чудес не обещаю, просто не даю коже стареть быстрее.',
+   tags:['Надёжный','Каждый день','Без сюрпризов'], score:5, v:'m', c:['#FFD27A','#F28C5B']},
+  {name:'Ботокс', dist:'В двух сантиметрах от вашей морщины',
+   bio:'Расслабляю. Правда, если переборщить, лицо перестанет выражать эмоции.',
+   tags:['Быстрый эффект','Нужен врач','Не навсегда'], score:4, v:'m', c:['#CDB4DB','#7B5C9E']},
+  {name:'Мезо-коктейль', dist:'Обещаю всё сразу: упругость, сияние, молодость',
+   bio:'Универсальный состав для любого лица. Подробности расскажу после оплаты.',
+   tags:['Много обещает','Состав загадка','Дорого'], score:2, v:'n', c:['#A8DADC','#3D7E94']},
+  {name:'Пилинг от блогера', dist:'Прямо у вас дома, в ванной',
+   bio:'Сам себе косметолог! Кислоты по промокоду, инструкция в сторис.',
+   tags:['Дёшево','Без осмотра','Риск ожога'], score:1, v:'n', c:['#F2A0A0','#B03A48']},
+  {name:'Пилинг у врача', dist:'Обновляюсь осенью. Летом не звоните',
+   bio:'Сглаживаю, выравниваю, возвращаю ровный тон. Нужна аккуратность после меня.',
+   tags:['Сезонный','Обновляет','Нужна реабилитация'], score:4, v:'m', c:['#BFE3C0','#4E9A6B']},
+  {name:'Филлеры «утка»', dist:'Чем больше объём, тем лучше',
+   bio:'Люблю формы. Остановиться не умею, поэтому приходите ещё.',
+   tags:['Объём','Эффект сразу','Неестественно'], score:1, v:'n', c:['#F7B2C8','#D1517E']},
+  {name:'Лазерная шлифовка', dist:'Горячий. Работаю на глубине',
+   bio:'Обновляю текстуру и рубцы. Но потом неделя реабилитации и никакого солнца.',
+   tags:['Мощный','Реабилитация','Только врач'], score:4, v:'m', c:['#FFB38A','#C84B31']},
+  {name:'Нити-лифтинг', dist:'Подтягиваю там, где ослабло',
+   bio:'Подхожу не каждому и не навсегда. Зато без скальпеля.',
+   tags:['Подтяжка','Не для всех','Зависит от кожи'], score:3, v:'n', c:['#D9C7A8','#8C7550']}
+];
+
+const deck = document.getElementById('deck');
+const emptyEl = document.getElementById('empty');
+let idx = 0, locked = false, results = [], recTimer = null, recOn = false;
+
+const rings = `<svg class="rings" viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="#fff" stroke-width="1.2"><circle cx="50" cy="50" r="46"/><circle cx="50" cy="50" r="36"/><circle cx="50" cy="50" r="26"/><circle cx="50" cy="50" r="16"/></svg>`;
+
+function build(){
+  deck.querySelectorAll('.card').forEach(c=>c.remove());
+  DATA.slice().reverse().forEach((d,ri)=>{
+    const i = DATA.length-1-ri;
+    const el = document.createElement('article');
+    el.className = 'card hidden';
+    el.dataset.i = i;
+    el.innerHTML = `
+      <div class="photo" style="background:linear-gradient(150deg,${d.c[0]},${d.c[1]})">
+        ${rings}
+        <div class="who"><h2>${d.name}</h2><p>${d.dist}</p></div>
+      </div>
+      <div class="info">
+        <p class="bio">${d.bio}</p>
+        <div class="chips">${d.tags.map(t=>`<span>${t}</span>`).join('')}</div>
+        <div class="gauge">
+          <div class="gauge-head"><span>Реальная польза</span><b>${LEVEL[d.score]}</b></div>
+          <div class="track"><i class="thumb" style="left:${POS[d.score]}%"></i></div>
+        </div>
+      </div>
+      <div class="stamp match">МЭТЧ</div>
+      <div class="stamp nope">МИМО</div>`;
+    deck.appendChild(el);
+    attachDrag(el);
+  });
+  refresh();
+}
+
+function cardEl(i){ return deck.querySelector(`.card[data-i="${i}"]`); }
+
+function refresh(){
+  DATA.forEach((_,i)=>{
+    const c = cardEl(i); if(!c) return;
+    c.classList.toggle('hidden', !(i===idx || i===idx+1));
+    c.classList.toggle('behind', i===idx+1);
+  });
+}
+
+const EXIT = {
+  m:'translate(135%,-6%) rotate(18deg)',
+  n:'translate(-135%,-6%) rotate(-18deg)'
+};
+
+function decide(dir){
+  if(locked || idx>=DATA.length) return;
+  locked = true;
+  const d = DATA[idx], c = cardEl(idx);
+  dir = dir || d.v;
+  c.classList.remove('dragging');
+  c.querySelector('.stamp.match').style.opacity = dir==='m' ? 1 : 0;
+  c.querySelector('.stamp.nope').style.opacity  = dir==='n' ? 1 : 0;
+  requestAnimationFrame(()=>{
+    c.style.transform = EXIT[dir];
+    c.style.opacity = 0;
+  });
+  results[idx] = dir;
+  idx++;
+  setTimeout(()=>{
+    c.classList.add('hidden');
+    locked = false;
+    refresh();
+    if(idx>=DATA.length) setTimeout(()=>emptyEl.classList.add('show'), recOn ? 1200 : 400);
+  }, 520);
+}
+
+function reset(){
+  emptyEl.classList.remove('show');
+  idx = 0; results = []; locked = false;
+  build();
+}
+
+/* drag: card follows the finger, the cosmetologist decides the direction */
+function attachDrag(el){
+  let sx=0, sy=0, on=false;
+  el.addEventListener('pointerdown',e=>{
+    if(+el.dataset.i!==idx || locked) return;
+    on=true; sx=e.clientX; sy=e.clientY;
+    el.setPointerCapture(e.pointerId); el.classList.add('dragging');
+  });
+  el.addEventListener('pointermove',e=>{
+    if(!on) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    el.style.transform=`translate(${dx}px,${dy}px) rotate(${dx/18}deg)`;
+    const k=Math.min(Math.abs(dx)/90,1);
+    el.querySelector('.stamp.match').style.opacity = dx>0 ? k : 0;
+    el.querySelector('.stamp.nope').style.opacity  = dx<0 ? k : 0;
+  });
+  const end=e=>{
+    if(!on) return; on=false;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    el.classList.remove('dragging');
+    if(Math.hypot(dx,dy)>60){ decide(Math.abs(dx)>20 ? (dx>0?'m':'n') : undefined); }
+    else{
+      el.style.transform='';
+      el.querySelectorAll('.stamp').forEach(s=>s.style.opacity=0);
+    }
+  };
+  el.addEventListener('pointerup',end);
+  el.addEventListener('pointercancel',end);
+}
+
+document.getElementById('bNope').addEventListener('click',()=>decide('n'));
+document.getElementById('bMatch').addEventListener('click',()=>decide('m'));
+document.getElementById('again').addEventListener('click',reset);
+
+/* recording mode: hides controls, plays the whole deck on its own */
+function startRec(){
+  reset();
+  recOn = true; document.body.classList.add('rec');
+  const step = ()=>{
+    if(!recOn || idx>=DATA.length) return;
+    recTimer = setTimeout(()=>{ decide(); recTimer = setTimeout(step, 1400); }, 2600);
+  };
+  step();
+}
+function stopRec(){
+  recOn = false; clearTimeout(recTimer);
+  document.body.classList.remove('rec');
+}
+document.getElementById('rec').addEventListener('click',startRec);
+addEventListener('keydown',e=>{ if(e.key==='Escape') stopRec(); });
+document.getElementById('stage').addEventListener('dblclick',()=>{ if(recOn) stopRec(); });
+
+build();
+</script>
+</body>
+</html>
